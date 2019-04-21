@@ -19,8 +19,9 @@ class Factory:
         self.nb_robots_target = nb_robots_target
         self.nb_working_robots = nb_working_robots
         self.robotsLock = threading.Lock() # Thread Lock
+        self.step_log = ""
         self.steps = {"Step1": 0, "Step2": 0, "Step3": 0,
-                      "Step4": 0, "Step5": 0}
+                      "Step4": 0, "Step5": 0, "Step6": 0}
 
     def create_robot(self):
         '''
@@ -56,4 +57,11 @@ class Factory:
         '''
         if not self.steps[step]:
             self.steps[step] += 1
-            print(step + ": " + log)
+            step_log = step + ": " + log
+            self.step_log = step_log
+            print(step_log)
+
+    def get_stock(self):
+        return {"foo": self.foo, "bar": self.bar,
+                "foobar": self.foobar, "money": self.money,
+                "robots": len(self.robots), "step_log": self.step_log}
