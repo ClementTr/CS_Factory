@@ -1,0 +1,57 @@
+<h1>Welcome to CS Factory</h1>
+
+<h3>CS Factory Running Step</h3>
+<div id="step">
+
+</div>
+
+<h3>CS Factory Stock</h3>
+<div id="foo">
+  Foo: 0
+</div>
+<div id="bar">
+  Bar: 0
+</div>
+<div id="foobar">
+  FooBar: 0
+</div>
+<div id="money">
+  Money: $0
+</div>
+<div id="robots">
+  Robots: 0
+</div>
+
+
+<script>
+fetch("http://localhost:5000/api", {
+  method: 'get',
+  dataType: 'json',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+  })
+  .then(response => response.json())
+  .then(response => {
+    document.getElementById("foo").innerHTML = "Foo: " + response["jack"];
+  });
+
+  setInterval(function(){
+    fetch("http://localhost:5000/api", {
+      method: 'get',
+      dataType: 'json',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(response => {
+      document.getElementById("foo").innerHTML = "Foo: " + "O";
+      document.getElementById("bar").innerHTML = "Bar: " + "O";
+      document.getElementById("foobar").innerHTML = "FooBar: " + "O";
+      document.getElementById("money").innerHTML = "Money: $" + "O";
+      document.getElementById("robots").innerHTML = "Robots: " + "O";
+    })}, 3000);
+</script>
