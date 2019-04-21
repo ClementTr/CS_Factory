@@ -176,7 +176,7 @@ class Robot(threading.Thread):
         while self.factory.foo < 660:
             self.mine_foo()
 
-        self.factory.activate_step("Step4", "Create/Sell FooBar..")
+        self.factory.activate_step("Step4", "Creating/Selling FooBar..")
         while self.factory.money < needed_resources:
             if self.isin_stock(real_working_robots):
                 self.try_foobar()

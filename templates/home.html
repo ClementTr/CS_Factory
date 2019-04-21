@@ -32,7 +32,7 @@
 
 <script>
   setInterval(function(){
-    fetch("http://localhost:5000/api", {
+    fetch("/api", {
       method: 'get',
       dataType: 'json',
       headers: {
@@ -51,6 +51,9 @@
 
       if(response["robots"] > 0){
         document.getElementById("button").style.display = "none"
+      }
+      if(response["step_log"].includes("6")){
+        document.getElementById("button").style.display = "block"
       }
     })}, 500);
 </script>
