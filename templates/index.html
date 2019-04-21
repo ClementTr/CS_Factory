@@ -1,0 +1,31 @@
+<h1 id="title">Bonjour {{success}}</h1>
+
+
+<script>
+fetch("http://localhost:5000/api", {
+  method: 'get',
+  dataType: 'json',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+  })
+  .then(response => response.json())
+  .then(response => {
+    document.getElementById("title").innerHTML = response["jack"];
+  });
+
+  setInterval(function(){
+    fetch("http://localhost:5000/api", {
+      method: 'get',
+      dataType: 'json',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => response.json())
+    .then(response => {
+      document.getElementById("title").innerHTML = response["sape"];
+    })}, 3000);
+</script>
