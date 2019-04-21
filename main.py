@@ -67,6 +67,30 @@ class Robot(threading.Thread):
         time.sleep(making_time)
         self.factory.bar += 1
 
+    def mine(self):
+        '''
+        Smart mine function that mine foo or bar depending of stock needs.
+        '''
+        if self.factory.foo - 7 <= self.factory.bar:
+            self.mine_foo()
+        elif self.factory.money > 3:
+            self.mine_foo()
+        else:
+            self.mine_bar()
+
+    def try_foobar(self):
+        '''
+        Function called when stock is enough in order to try to create a
+        FooBar. Creation success (60%) is determined with random.
+        '''
+        time.sleep(2)
+        success = random.random() <= 0.6
+        if success:
+            self.create_foobar()
+            self.sell_foobar()
+        else:
+            self.fail_foobar()
+
     def create_foobar(self):
         '''
         Function creating FooBar remove 1 foo and 1 bar from robot's factory.
@@ -109,20 +133,67 @@ class Robot(threading.Thread):
             return True
         return False
 
-    def run(self):
-        self.mine_foo()
-        self.mine_bar()
+    def buy_robot(self):
+        print(self.factory.money, self.factory.foo)
+        print(self.name + " bought a robot")
+        self.factory.money -= 3
+        self.factory.foo -= 6
+        assert(self.factory.money >= 0)
+        assert(self.factory.foo >= 0)
+        launch_robot(self.factory)
 
+    def buy_working_robots(self, nb_worker_robots):
+        print("Starting " + self.name)
+        exitFlag = 0
+        while len(self.factory.robots) < nb_worker_robots:
+            self.mine()
+            # Get lock to synchronize threads
+            robotsLock.acquire()
+            self.try_foobar()
+            if exitFlag == 0:
+                if self.can_buy():
+                    self.buy_robot()
+                exitFlag += 1
+            # Free lock to release next thread
+            robotsLock.release()
+            exitFlag = 0
+
+    def run(self):
+        '''
+        Start Thread
+        '''
+        num_working_robots = 3
+        for i in range(5):
+            self.mine_foo()
+        self.mine_bar()
+        self.try_foobar()
+        self.buy_working_robots(num_working_robots)
+
+
+global launch_robot
+global robotsLock
+global nb_robots_target
+
+def launch_robot(factory, num_robot=1):
+    for robot in range(num_robot):
+        factory.create_robot()
+        factory.robots[-1].start()
 
 if __name__ == '__main__':
     # Create Factory
     cs_factory = Factory()
-    cs_factory.create_robot()
 
+    # Thread Lock
+    robotsLock = threading.Lock()
 
-    cs_factory.robots[0].start()
-    cs_factory.robots[0].join()
-    print("Stopping " + cs_factory.robots[0].name)
+    #Launch 2 first robots
+    launch_robot(cs_factory, 2)
+
+    # Wait for all threads to complete
+    for rt in cs_factory.robots:
+        rt.join()
+        print("Stopping " + rt.name)
+    print ("Exiting Main Thread")
 
     print("Bar: ", cs_factory.bar)
     print("Foo: ", cs_factory.foo)
