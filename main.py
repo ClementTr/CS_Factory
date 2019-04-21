@@ -8,7 +8,7 @@ class Factory:
     For our project, the obj is to make this list equals to 100.
     It also contains all stock information.
     '''
-    def __init__(self):
+    def __init__(self, nb_robots_target):
         '''
         Class Constructor
         '''
@@ -17,6 +17,7 @@ class Factory:
         self.foo = 0 #2s
         self.bar = 0 #.5-2s
         self.money = 0
+        self.nb_robots_target = nb_robots_target
 
     def create_robot(self):
         '''
@@ -40,12 +41,12 @@ class Robot(threading.Thread):
         '''
         time.sleep(2)
 
-    def isin_stock(self):
+    def isin_stock(self, val_min=0):
         '''
         Check if there are enough foo+bar for robot in its factory to create
         FooBar.
         '''
-        if (self.factory.foo > 0) & (self.factory.bar > 0):
+        if (self.factory.foo > val_min) & (self.factory.bar > 0):
             return True
         return False
 
@@ -162,7 +163,8 @@ class Robot(threading.Thread):
             self.mine()
             # Get lock to synchronize threads
             robotsLock.acquire()
-            self.try_foobar()
+            if self.isin_stock():
+                self.try_foobar()
             if exitFlag == 0:
                 if self.can_buy():
                     self.buy_robot()
@@ -175,17 +177,30 @@ class Robot(threading.Thread):
         '''
         Start Thread
         '''
-        num_working_robots = 3
-        for i in range(5):
-            self.mine_foo()
-        self.mine_bar()
-        self.try_foobar()
+        num_working_robots = 10
         self.buy_working_robots(num_working_robots)
+        real_working_robots = len(self.factory.robots)
+        needed_resources = self.factory.nb_robots_target - real_working_robots
+
+        while self.factory.foo < 660: #90(foobar) + 30(appro failed) +  540(money)
+            self.mine_foo()
+        while self.factory.bar < needed_resources:
+            self.mine_bar()
+        while self.factory.money < needed_resources:
+            if self.isin_stock(real_working_robots):
+                self.try_foobar()
+            else:
+                print("More Foo Mining")
+                self.mine_foo()
+
+        # If not enough foo for money
+        while self.factory.foo < 540:
+            print("Not Enough to sell")
+            self.mine_foo()
 
 
 global launch_robot
 global robotsLock
-global nb_robots_target
 
 def launch_robot(factory, num_robot=1):
     for robot in range(num_robot):
@@ -193,8 +208,10 @@ def launch_robot(factory, num_robot=1):
         factory.robots[-1].start()
 
 if __name__ == '__main__':
+    start = time.time()
+
     # Create Factory
-    cs_factory = Factory()
+    cs_factory = Factory(100)
 
     # Thread Lock
     robotsLock = threading.Lock()
@@ -208,5 +225,18 @@ if __name__ == '__main__':
         print("Stopping " + rt.name)
     print ("Exiting Main Thread")
 
+    while cs_factory.money > 0:
+        cs_factory.create_robot()
+        cs_factory.money -= 1
+        cs_factory.foo -= 6
+        if len(cs_factory.robots) >= cs_factory.nb_robots_target:
+            break;
+
     print("Bar: ", cs_factory.bar)
     print("Foo: ", cs_factory.foo)
+    print("Foobar: ", cs_factory.foobar)
+    print("Money: ", cs_factory.money)
+    print("Robots: ", len(cs_factory.robots))
+
+    end = time.time()
+    print("Time: ", end - start)
