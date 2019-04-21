@@ -8,7 +8,7 @@ class Factory:
     For our project, the obj is to make this list equals to 100.
     It also contains all stock information.
     '''
-    def __init__(self, nb_robots_target):
+    def __init__(self, nb_robots_target, nb_working_robots):
         '''
         Class Constructor
         '''
@@ -18,12 +18,46 @@ class Factory:
         self.bar = 0 #.5-2s
         self.money = 0
         self.nb_robots_target = nb_robots_target
+        self.nb_working_robots = nb_working_robots
+        self.steps = {"Step1": 0, "Step2": 0, "Step3": 0,
+                      "Step4": 0, "Step5": 0}
 
     def create_robot(self):
         '''
-        Add Robot to factory (see Robot constructor)
+        Add Robot to factory (see Robot constructor).
         '''
         Robot(self)
+
+    def final_buy(self):
+        '''
+        Function allow buy robots until there is no more money or the
+        number of robots targeted is reached.
+        '''
+        while self.money > 0:
+            self.create_robot()
+            self.money -= 1
+            self.foo -= 6
+            if len(self.robots) >= self.nb_robots_target:
+                break;
+
+    def get_log(self):
+        '''
+        Print attributes states.
+        '''
+        print("Bar: ", self.bar)
+        print("Foo: ", self.foo)
+        print("Foobar: ", self.foobar)
+        print("Money: ", self.money)
+        print("Robots: ", len(self.robots))
+
+    def activate_step(self, step, log):
+        '''
+        Factory process log system
+        '''
+        if not self.steps[step]:
+            self.steps[step] += 1
+            print(step + ": " + log)
+
 
 class Robot(threading.Thread):
     def __init__(self, factory):
@@ -54,7 +88,7 @@ class Robot(threading.Thread):
         '''
         Mining Foo is waiting 2 seconds and remove one foo of robot's factory.
         '''
-        print(self.name + " mining Foo")
+        #print(self.name + " mining Foo")
         time.sleep(2)
         self.factory.foo += 1
 
@@ -63,7 +97,7 @@ class Robot(threading.Thread):
         Mining Bar is waiting random time (between 0.5 and 2 seconds)
         and remove one bar of robot's factory.
         '''
-        print(self.name + " mining Bar")
+        #print(self.name + " mining Bar")
         making_time = random.uniform(.5, 2)
         time.sleep(making_time)
         self.factory.bar += 1
@@ -98,7 +132,7 @@ class Robot(threading.Thread):
         It's also adding one foobar.
         Add assert as we cannot have negative value in stock's factory.
         '''
-        print(self.name + " created FooBar")
+        #print(self.name + " created FooBar")
         self.factory.foo -= 1
         self.factory.bar -= 1
         self.factory.foobar += 1
@@ -110,7 +144,7 @@ class Robot(threading.Thread):
         Function fail FooBar is removing 1 foo from robot's factory
         and asserting stock is positive.
         '''
-        print(self.name + " failed FooBar")
+        #print(self.name + " failed FooBar")
         self.factory.foo -= 1
         assert(self.factory.foo >= 0)
 
@@ -120,7 +154,7 @@ class Robot(threading.Thread):
         money attribute.
         Assert FooBar stock is positive after removing FooBar.
         '''
-        print(self.name + " sold 1 FooBar")
+        #print(self.name + " sold 1 FooBar")
         time.sleep(1)
         self.factory.money += 1
         self.factory.foobar -= 1
@@ -142,15 +176,15 @@ class Robot(threading.Thread):
         Then it launches a new robot as a thread who will be able
         to mine, gather/sell foobar and buy a new robot itself.
         '''
-        print(self.factory.money, self.factory.foo)
-        print(self.name + " bought a robot")
+        #print(self.factory.money, self.factory.foo)
+        #print(self.name + " bought a robot")
         self.factory.money -= 3
         self.factory.foo -= 6
         assert(self.factory.money >= 0)
         assert(self.factory.foo >= 0)
         launch_robot(self.factory)
 
-    def buy_working_robots(self, nb_worker_robots):
+    def buy_working_robots(self):
         '''
         Function buy robots until factory have nb_worker_robots.
         First all robots mine.
@@ -158,8 +192,9 @@ class Robot(threading.Thread):
         stocks are not negative)
         '''
         print("Starting " + self.name)
+        self.move()
         exitFlag = 0
-        while len(self.factory.robots) < nb_worker_robots:
+        while len(self.factory.robots) < self.factory.nb_working_robots:
             self.mine()
             # Get lock to synchronize threads
             robotsLock.acquire()
@@ -176,26 +211,38 @@ class Robot(threading.Thread):
     def run(self):
         '''
         Start Thread
+
+        Step1: Create Working Robots
+        Step2: Bar Mining
+        Step3: Foo Mining
+        Step4: Create/Sell FooBar (If not enough money, GOTO Step3)
+        Step5: Foo Mining for buying robots
         '''
-        num_working_robots = 10
-        self.buy_working_robots(num_working_robots)
+        self.factory.activate_step("Step1", "Create Working Robots..")
+        self.buy_working_robots()
         real_working_robots = len(self.factory.robots)
         needed_resources = self.factory.nb_robots_target - real_working_robots
 
-        while self.factory.foo < 660: #90(foobar) + 30(appro failed) +  540(money)
-            self.mine_foo()
+        self.factory.activate_step("Step2", "Bar Mining..")
         while self.factory.bar < needed_resources:
             self.mine_bar()
+
+        self.factory.activate_step("Step3", "Foo Mining..")
+        #660 = 90(make foobar) + 30(pred foobar failed) + 540(buy robots)
+        while self.factory.foo < 660:
+            self.mine_foo()
+
+        self.factory.activate_step("Step4", "Create/Sell FooBar..")
         while self.factory.money < needed_resources:
             if self.isin_stock(real_working_robots):
                 self.try_foobar()
             else:
-                print("More Foo Mining")
+                #print("More Foo Mining")
                 self.mine_foo()
 
-        # If not enough foo for money
+        self.factory.activate_step("Step5", "Foo Mining for buying robots..")
         while self.factory.foo < 540:
-            print("Not Enough to sell")
+            #print("Not Enough to buy")
             self.mine_foo()
 
 
@@ -211,7 +258,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Create Factory
-    cs_factory = Factory(100)
+    cs_factory = Factory(100, 10)
 
     # Thread Lock
     robotsLock = threading.Lock()
@@ -225,18 +272,11 @@ if __name__ == '__main__':
         print("Stopping " + rt.name)
     print ("Exiting Main Thread")
 
-    while cs_factory.money > 0:
-        cs_factory.create_robot()
-        cs_factory.money -= 1
-        cs_factory.foo -= 6
-        if len(cs_factory.robots) >= cs_factory.nb_robots_target:
-            break;
+    # Buy last robots
+    cs_factory.final_buy()
+    # Display stocks and achievment
+    cs_factory.get_log()
 
-    print("Bar: ", cs_factory.bar)
-    print("Foo: ", cs_factory.foo)
-    print("Foobar: ", cs_factory.foobar)
-    print("Money: ", cs_factory.money)
-    print("Robots: ", len(cs_factory.robots))
-
+    # Display algo time needed
     end = time.time()
     print("Time: ", end - start)
