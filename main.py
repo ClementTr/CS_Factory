@@ -134,6 +134,13 @@ class Robot(threading.Thread):
         return False
 
     def buy_robot(self):
+        '''
+        Having enough foo and money a robot can buy another one.
+        It remove money and foo from factory so we assert those
+        attributes are still positive.
+        Then it launches a new robot as a thread who will be able
+        to mine, gather/sell foobar and buy a new robot itself.
+        '''
         print(self.factory.money, self.factory.foo)
         print(self.name + " bought a robot")
         self.factory.money -= 3
@@ -143,6 +150,12 @@ class Robot(threading.Thread):
         launch_robot(self.factory)
 
     def buy_working_robots(self, nb_worker_robots):
+        '''
+        Function buy robots until factory have nb_worker_robots.
+        First all robots mine.
+        Then we use a synchronized Lock to avoid multi bought (make sure
+        stocks are not negative)
+        '''
         print("Starting " + self.name)
         exitFlag = 0
         while len(self.factory.robots) < nb_worker_robots:
