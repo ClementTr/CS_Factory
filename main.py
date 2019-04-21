@@ -18,7 +18,16 @@ class Factory:
     def create_robot(self):
         Robot(self)
 
+class Robot(threading.Thread):
+    def __init__(self, factory):
+        threading.Thread.__init__(self)
+        self.factory = factory
+        self.factory.robots.append(self)
+        self.name = "robot_" + str(len(self.factory.robots)-1)
 
 if __name__ == '__main__':
     # Create Factory
     cs_factory = Factory()
+    cs_factory.create_robot()
+
+    print(cs_factory.robots[0].name)
